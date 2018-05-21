@@ -101,9 +101,9 @@ int main() {
           }
 
           double* ptrx = &ptsx[0];
-          Eigen::Map<Eigen::VectorXd> ptsx_transForm(ptsx, 6);
+          Eigen::Map<Eigen::VectorXd> ptsx_transForm(ptrx, 6);
           double* ptry = &ptsy[0];
-          Eigen::Map<Eigen::VectorXd> ptsy_transForm(ptsy, 6);
+          Eigen::Map<Eigen::VectorXd> ptsy_transForm(ptry, 6);
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.

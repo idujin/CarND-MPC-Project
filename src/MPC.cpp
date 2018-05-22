@@ -25,7 +25,7 @@ const double Lf = 2.67;
 // or do something completely different
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 100;//40;
+double ref_v = 100;//40; mph to m/s
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -113,8 +113,8 @@ class FG_eval {
   	  AD<double> delta0 = vars[delta_start + t - 1];
       AD<double> a0 = vars[a_start + t - 1];
 
-  	  AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0*x0*x0;
-  	  AD<double> psides0 = CppAD::atan(3 * coeffs[3] *x0*x0 + 2*coeffs[2]*x0 + coeffs[1]);
+  	  AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
+  	  AD<double> psides0 = CppAD::atan(3 * coeffs[3] * x0 * x0 + 2 * coeffs[2] * x0 + coeffs[1]);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -126,10 +126,10 @@ class FG_eval {
       // TODO: Setup the rest of the model constraints
       fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-   	  fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+   	  fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
   	  fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
   	  fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-  	  fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+  	  fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
   	}
   }
 };
@@ -255,8 +255,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 
   // Cost
-  auto cost = solution.obj_value;
-  std::cout << "Cost " << cost << std::endl;
+  //auto cost = solution.obj_value;
+  //std::cout << "Cost " << cost << std::endl;
 
   // TODO: Return the first actuator values. The variables can be accessed with
   // `solution.x[i]`.
@@ -267,9 +267,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   result.push_back(solution.x[delta_start]);
   result.push_back(solution.x[a_start]);
 
-  for (int i =0; i< N; ++i){
-    result.push_back(solution.x[x_start+ 1 + i]);
-    result.push_back(solution.x[y_start+ 1 + i]);
+  for (int i = 1; i< N; ++i){
+    result.push_back(solution.x[x_start+ i]);
+    result.push_back(solution.x[y_start+ i]);
   }
 
   return result;

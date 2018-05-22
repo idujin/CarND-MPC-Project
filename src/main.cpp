@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "MPC.h"
 #include "json.hpp"
+#include <ctime>
 
 // for convenience
 using json = nlohmann::json;
@@ -41,6 +42,8 @@ double polyeval(Eigen::VectorXd coeffs, double x) {
   return result;
 }
 
+std::chrono::time_point<std::chrono::system_clock>  prev_time;
+double latency = 0.0;
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
@@ -92,12 +95,13 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+         // v = v * 0.447;//mph to m/s
           for(int i=0; i< ptsx.size(); ++i){
-            double shift_x = ptsx[i] -px;
+            double shift_x = ptsx[i] - px;
             double shift_y = ptsy[i] - py;
 
-            ptsx[i] = shift_x*cos(0 - psi)-shift_y*sin(0-psi);
-            ptsy[i] = shift_x*sin(0-psi) + shift_y * cos(0-psi);
+            ptsx[i] = shift_x*cos(0 - psi) - shift_y * sin(0-psi);
+            ptsy[i] = shift_x*sin(0 - psi) + shift_y * cos(0-psi);
           }
 
           double* ptrx = &ptsx[0];
@@ -124,35 +128,6 @@ int main() {
           
           auto vars = mpc.Solve(state, coeffs);
 
-          double Lf = 2.67;
-          double steer_value = vars[0]/(deg2rad(25) *Lf);
-          double throttle_value = vars[1];
-
-          json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = throttle_value;
-
-          //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Green line
-          for(int i=2; i <vars.size(); ++i){
-            if(i%2 == 0){
-              mpc_x_vals.push_back(vars[i]);
-            }
-            else{
-              mpc_y_vals.push_back(vars[i]);
-            }
-          }
-
-          msgJson["mpc_x"] = mpc_x_vals;
-          msgJson["mpc_y"] = mpc_y_vals;
-
-
           //Display the waypoints/reference line
           vector<double> next_x_vals;
           vector<double> next_y_vals;
@@ -164,6 +139,33 @@ int main() {
             next_y_vals.push_back(polyeval(coeffs, poly_inc *i));
           }
 
+          //Display the MPC predicted trajectory 
+          vector<double> mpc_x_vals;
+          vector<double> mpc_y_vals;
+          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
+          // the points in the simulator are connected by a Green line
+          for(int i= 2; i <vars.size(); ++i){
+            if( i%2 == 0){
+              mpc_x_vals.push_back(vars[i]);
+            }
+            else{
+              mpc_y_vals.push_back(vars[i]);
+            }
+          }
+
+          double Lf = 2.67;
+          double steer_value = vars[0]/(deg2rad(25) *Lf);
+          double throttle_value = vars[1];
+
+          json msgJson;
+          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
+          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
+          msgJson["steering_angle"] = steer_value;
+          msgJson["throttle"] = throttle_value;
+
+          msgJson["mpc_x"] = mpc_x_vals;
+          msgJson["mpc_y"] = mpc_y_vals;
+
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
 
@@ -173,6 +175,7 @@ int main() {
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
+
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
@@ -182,7 +185,24 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          this_thread::sleep_for(chrono::milliseconds(100));
+
+          if(latency !=0.0){
+            std::chrono::time_point<std::chrono::system_clock> curr_time;
+            curr_time = std::chrono::system_clock::now();
+
+            std::chrono::duration<double> elapsed_seconds = curr_time - prev_time;
+
+            latency = elapsed_seconds.count() * 1000;
+            prev_time = curr_time;
+          }
+          else{
+            latency = 100;
+          }
+
+          if(latency > 100){
+            std::cout << "Latency: "<<latency << std::endl;
+          }
+          //this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {

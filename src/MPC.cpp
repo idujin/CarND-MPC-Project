@@ -86,6 +86,7 @@ class FG_eval {
     // We add 1 to each of the starting indices due to cost being located at
     // index 0 of `fg`.
     // This bumps up the position of all the other values.
+   
     fg[1 + x_start] = vars[x_start];
     fg[1 + y_start] = vars[y_start];
     fg[1 + psi_start] = vars[psi_start];
@@ -101,7 +102,7 @@ class FG_eval {
 	  AD<double> psi1 = vars[psi_start + t];
       AD<double> v1 = vars[v_start + t];
       AD<double> cte1 = vars[cte_start + t];
-	    AD<double> epsi1 = vars[epsi_start + t];
+	  AD<double> epsi1 = vars[epsi_start + t];
  	    // The state at time t.
       AD<double> x0 = vars[x_start + t - 1];
       AD<double> y0 = vars[y_start + t - 1];
@@ -124,7 +125,7 @@ class FG_eval {
       // these to the solver.
 
       // TODO: Setup the rest of the model constraints
-      fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+      fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt) ;
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
    	  fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
   	  fg[1 + v_start + t] = v1 - (v0 + a0 * dt);

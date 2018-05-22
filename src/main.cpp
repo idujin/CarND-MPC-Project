@@ -94,8 +94,19 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+          double delta = j[1]["steering_angle"];
+          double acceleration = j[1]["throttle"];
 
-         // v = v * 0.447;//mph to m/s
+          //v = v * 0.447;//mph to m/s
+
+          double Lf = 2.67;
+          double latency_t = 0.1;          
+          px = px + ( v * cos(psi) * latency_t) ;
+          py = py + v * sin(psi) * latency_t;
+          psi= psi - (v * delta / Lf * latency_t);
+          v = (v + acceleration * latency_t);
+        
+
           for(int i=0; i< ptsx.size(); ++i){
             double shift_x = ptsx[i] - px;
             double shift_y = ptsy[i] - py;
@@ -116,15 +127,15 @@ int main() {
           *
           */
           auto coeffs = polyfit(ptsx_transForm, ptsy_transForm, 3);
-          double cte = polyeval(coeffs, 0);
-          //double epsi = psi - atan(coeffs[1] +2 * px * coeffs[2] + 3 * coeffs[3]* px *px );
-          double epsi = -atan(coeffs[1]);
+          double cte = polyeval(coeffs, px);
+          double epsi = psi - atan(coeffs[1] +2 * px * coeffs[2] + 3 * coeffs[3]* px *px );
+         // double epsi = -atan(coeffs[1]);
 
-          //double steer_value = j[1]["steering_angle"];
-          //double throttle_value = j[1]["throttle"];
+          
 
           Eigen::VectorXd state(6);
-          state << 0,0,0, v, cte, epsi;
+
+          state << 0, 0, 0, v, cte, epsi;
           
           auto vars = mpc.Solve(state, coeffs);
 
@@ -153,7 +164,7 @@ int main() {
             }
           }
 
-          double Lf = 2.67;
+          
           double steer_value = vars[0]/(deg2rad(25) *Lf);
           double throttle_value = vars[1];
 
@@ -186,23 +197,7 @@ int main() {
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
 
-          if(latency !=0.0){
-            std::chrono::time_point<std::chrono::system_clock> curr_time;
-            curr_time = std::chrono::system_clock::now();
-
-            std::chrono::duration<double> elapsed_seconds = curr_time - prev_time;
-
-            latency = elapsed_seconds.count() * 1000;
-            prev_time = curr_time;
-          }
-          else{
-            latency = 100;
-          }
-
-          if(latency > 100){
-            std::cout << "Latency: "<<latency << std::endl;
-          }
-          //this_thread::sleep_for(chrono::milliseconds(100));
+          this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {

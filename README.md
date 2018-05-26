@@ -18,8 +18,9 @@
 
 ## Timestep Length and Elapsed Duration (N & dt)
   At first, I tried 10 N and 0.1 dt which are provided in the example code of the Q & A video but these parameters did not fit without latency compensation. When there is no code for handling 100 millisecond latency, the latency should be added to the dt which is proper at no latency environment. In my case the dt was 0.2 but I restrored the value to 0.1 after handling 0.1s of the latency.
-##Polynomial Fitting and MPC Processing
+
+## Polynomial Fitting and MPC Processing
   Before processing polynomial fitting, I transformed the map coordinate position to the vehicle coordinate position. For fitting waypoints, the third order polynomial is used.
 
-##Model Predictive Control with Latency
-  To deal with the 100 millisecond latency, I set the model to start with current state which is after 100 milliseond state from input state. That code can be found in line 104 to 107 in main.cpp. I referenced [How to incorporate latency into the model] (https://discussions.udacity.com/t/how-to-incorporate-latency-into-the-model/257391/18) to solve this latency issue.
+## Model Predictive Control with Latency
+  To deal with the 100 millisecond latency, I set the model to start with current state which is after 100 milliseond state from input state. That code can be found in line 104 to 107 in main.cpp. I referenced [How to incorporate latency into the model](https://discussions.udacity.com/t/how-to-incorporate-latency-into-the-model/257391/18) to solve this latency issue.
